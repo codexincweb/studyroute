@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../app/routes.dart';
-import '../app/theme.dart';
+import '../models/learning_route.dart';
 import '../models/stage.dart';
-import '../services/route_state.dart';
-import '../widgets/bottom_nav.dart';
-import '../widgets/progress_ring.dart';
-import '../widgets/stage_card.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import 'learning_stage_screen.dart';
 
 class RouteDashboardScreen extends StatefulWidget {
   const RouteDashboardScreen({super.key});
@@ -16,313 +14,210 @@ class RouteDashboardScreen extends StatefulWidget {
 }
 
 class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
-  final RouteState _routeState = RouteState.instance;
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
 
-  @override
-  void initState() {
-    super.initState();
-    _routeState.addListener(_onRouteChanged);
-  }
+  LearningRoute? _route;
+  bool _isLoading = true;
+  String? _error;
 
-  @override
-  void dispose() {
-    _routeState.removeListener(_onRouteChanged);
-    super.dispose();
-  }
-
-  void _onRouteChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
+  String _goal = '';
+  String _level = '';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    if (arguments is Map) {
-      final goal = arguments['goal'];
-      final level = arguments['level'];
+    _goal = args?['goal']?.toString() ?? '';
+    _level = args?['level']?.toString() ?? '';
 
-      if (goal is String && level is String) {
-        if (goal != _routeState.goal || level != _routeState.level) {
-          _routeState.setRoute(goal: goal, level: level);
-        }
-      }
+    if (_route == null) {
+      _loadRoute();
     }
   }
 
-  void _openStage(Stage stage) {
+  Future<void> _loadRoute() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final result = await _apiService.getLearningPaths();
+
+      final paths = result['learningPaths'] as List<dynamic>? ?? [];
+
+      Map<String, dynamic>? selectedPath;
+
+      for (final item in paths) {
+        final path = Map<String, dynamic>.from(item as Map);
+
+        if (path['goal']?.toString() == _goal &&
+            path['level']?.toString() == _level) {
+          selectedPath = path;
+          break;
+        }
+      }
+
+      if (selectedPath == null) {
+        throw Exception(
+          'No learning route found for $_goal at $_level level.',
+        );
+      }
+
+      final pathId = selectedPath['id'].toString();
+
+      final token = await _storageService.getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Please log in again.');
+      }
+
+      final routeResult = await _apiService.getLearningPath(
+        pathId,
+        token,
+      );
+
+      setState(() {
+        _route = LearningRoute.fromJson(routeResult);
+        _isLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Stage? get _currentStage {
+    final stages = _route?.stages ?? [];
+
+    for (final stage in stages) {
+      if (!stage.isCompleted && !stage.isLocked) {
+        return stage;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _openStage(Stage stage) async {
     if (stage.isLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Complete the previous stage to unlock this one.'),
+          content: Text('Complete the previous stage first.'),
         ),
       );
       return;
     }
 
-    Navigator.pushNamed(context, AppRoutes.learningStage, arguments: stage);
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LearningStageScreen(),
+        settings: RouteSettings(arguments: stage),
+      ),
+    );
+
+    if (completed == true && mounted) {
+      await _loadRoute();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final stages = _routeState.stages;
-    final completedStages = _routeState.completedStages;
-    final progress = _routeState.progress;
-    final currentStage = _routeState.currentStage;
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Learning Route'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadRoute,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final route = _route!;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'StudyRoute',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.profile);
-            },
-            icon: const Icon(Icons.person_outline),
-          ),
-          const SizedBox(width: 8),
-        ],
+        title: Text(route.title),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Your learning route',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
+      body: RefreshIndicator(
+        onRefresh: _loadRoute,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              route.title,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(route.description),
+            const SizedBox(height: 20),
+            LinearProgressIndicator(
+              value: route.progress,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${route.completedStages}/${route.stages.length} stages completed',
+            ),
+            const SizedBox(height: 24),
+            ...route.stages.map(
+              (stage) => Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  title: Text(
+                    'Stage ${stage.number}: ${stage.title}',
+                  ),
+                  subtitle: Text(stage.description),
+                  trailing: stage.isCompleted
+                      ? const Icon(Icons.check)
+                      : stage.isLocked
+                          ? const Icon(Icons.lock)
+                          : const Icon(Icons.arrow_forward),
+                  onTap: () => _openStage(stage),
                 ),
               ),
-
-              const SizedBox(height: 8),
-
-              Text(
-                '${_routeState.goal} • ${_routeState.level}',
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: AppColors.secondaryText,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    ProgressRing(progress: progress, size: 96, strokeWidth: 9),
-
-                    const SizedBox(width: 20),
-
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Route progress',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.secondaryText,
-                            ),
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          Text(
-                            '$completedStages of '
-                            '${stages.length} stages',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.text,
-                            ),
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          const Text(
-                            'Keep going. You\'re making progress.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: AppColors.secondaryText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              const Text(
-                'What\'s next',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
-                ),
-              ),
-
+            ),
+            if (_currentStage != null) ...[
               const SizedBox(height: 12),
-
-              if (currentStage != null)
-                InkWell(
-                  onTap: () {
-                    _openStage(currentStage);
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.navy,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white,
-                          ),
-                        ),
-
-                        const SizedBox(width: 14),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Continue learning',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white60,
-                                ),
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              Text(
-                                currentStage.title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const Icon(Icons.arrow_forward, color: Colors.white),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(
-                        Icons.emoji_events_outlined,
-                        size: 40,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'Route completed!',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'You completed every stage.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 30),
-
-              const Text(
-                'Your route',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
-                ),
+              ElevatedButton(
+                onPressed: () => _openStage(_currentStage!),
+                child: const Text('Continue Learning'),
               ),
-
-              const SizedBox(height: 12),
-
-              ...stages.map((stage) {
-                StageStatus status;
-
-                if (stage.isCompleted) {
-                  status = StageStatus.completed;
-                } else if (stage.isLocked) {
-                  status = StageStatus.locked;
-                } else {
-                  status = StageStatus.current;
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: StageCard(
-                    stageNumber: stage.number,
-                    title: stage.title,
-                    description: stage.description,
-                    status: status,
-                    onTap: () {
-                      _openStage(stage);
-                    },
-                  ),
-                );
-              }),
             ],
-          ),
+          ],
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 1),
     );
   }
 }

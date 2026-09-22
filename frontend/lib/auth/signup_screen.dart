@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/theme.dart';
+import '../../services/api_service.dart';
+import '../../services/storage_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/primary_button.dart';
 
@@ -19,6 +21,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
+
   bool _isLoading = false;
 
   @override
@@ -29,7 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _createAccount() async {
+  Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -38,19 +43,48 @@ class _SignupScreenState extends State<SignupScreen> {
       _isLoading = true;
     });
 
-    // Temporary mock signup.
-    // We will connect this to the backend later.
-    await Future.delayed(const Duration(milliseconds: 700));
+    try {
+      final result = await _apiService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    if (!mounted) {
-      return;
+      final token = result['token'];
+
+      if (token is! String || token.isEmpty) {
+        throw Exception('Registration token was not returned');
+      }
+
+      await _storageService.saveToken(token);
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.chooseGoal,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pushReplacementNamed(context, AppRoutes.chooseGoal);
   }
 
   @override

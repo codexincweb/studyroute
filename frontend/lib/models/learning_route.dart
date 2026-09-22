@@ -17,6 +17,23 @@ class LearningRoute {
     required this.stages,
   });
 
+  factory LearningRoute.fromJson(Map<String, dynamic> json) {
+    return LearningRoute(
+      id: json['id'].toString(),
+      title: json['title'] as String,
+      goal: json['goal'] as String,
+      level: json['level'] as String,
+      description: json['description'] as String,
+      stages: (json['stages'] as List<dynamic>? ?? const [])
+          .map(
+            (stage) => Stage.fromJson(
+              Map<String, dynamic>.from(stage as Map),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   int get completedStages {
     return stages.where((stage) => stage.isCompleted).length;
   }

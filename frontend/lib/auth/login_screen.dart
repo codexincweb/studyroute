@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/theme.dart';
+import '../../services/api_service.dart';
+import '../../services/storage_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/primary_button.dart';
 
@@ -14,9 +16,11 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
 
   bool _isLoading = false;
 
@@ -27,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -36,19 +40,47 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Temporary mock login.
-    // We will connect this to the backend later.
-    await Future.delayed(const Duration(milliseconds: 700));
+    try {
+      final result = await _apiService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    if (!mounted) {
-      return;
+      final token = result['token'];
+
+      if (token is! String || token.isEmpty) {
+        throw Exception('Login token was not returned');
+      }
+
+      await _storageService.saveToken(token);
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.routeDashboard,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pushReplacementNamed(context, AppRoutes.routeDashboard);
   }
 
   @override

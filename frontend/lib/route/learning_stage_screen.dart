@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
 import '../models/stage.dart';
-import '../services/route_state.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/resource_card.dart';
+import 'quiz_screen.dart';
 
 class LearningStageScreen extends StatefulWidget {
   const LearningStageScreen({super.key});
@@ -14,8 +16,12 @@ class LearningStageScreen extends StatefulWidget {
 }
 
 class _LearningStageScreenState extends State<LearningStageScreen> {
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
+
   Stage? _stage;
   bool _completed = false;
+  bool _isCompleting = false;
 
   @override
   void didChangeDependencies() {
@@ -23,33 +29,99 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
 
     final arguments = ModalRoute.of(context)?.settings.arguments;
 
-    if (arguments is Stage) {
+    if (arguments is Stage && _stage == null) {
       _stage = arguments;
+      _completed = arguments.isCompleted;
     }
   }
 
-  void _completeStage() {
-    if (_stage == null) {
+  Future<void> _takeQuiz() async {
+    if (_stage == null || _stage!.quizId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No quiz is available for this stage.'),
+        ),
+      );
       return;
     }
 
-    RouteState.instance.completeStage(_stage!.id);
-
-    setState(() {
-      _completed = true;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Stage completed! Your progress has been updated.'),
+    final passed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const QuizScreen(),
+        settings: RouteSettings(
+          arguments: {
+            'quizId': _stage!.quizId,
+          },
+        ),
       ),
     );
+
+    if (passed == true && mounted) {
+      await _completeStage();
+    }
+  }
+
+  Future<void> _completeStage() async {
+    if (_stage == null || _isCompleting || _completed) {
+      return;
+    }
+
+    setState(() {
+      _isCompleting = true;
+    });
+
+    try {
+      final token = await _storageService.getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Please log in again.');
+      }
+
+      await _apiService.completeStage(
+        _stage!.id,
+        token,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _completed = true;
+        _isCompleting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stage completed! Your progress has been updated.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isCompleting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_stage == null) {
-      return const Scaffold(body: Center(child: Text('Stage not found')));
+      return const Scaffold(
+        body: Center(
+          child: Text('Stage not found'),
+        ),
+      );
     }
 
     final stage = _stage!;
@@ -67,7 +139,6 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stage header
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
@@ -97,9 +168,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     Text(
                       stage.title,
                       style: const TextStyle(
@@ -109,9 +178,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                         color: Colors.white,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
                       stage.description,
                       style: const TextStyle(
@@ -126,7 +193,6 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
 
               const SizedBox(height: 30),
 
-              // Objectives
               const Text(
                 'What you\'ll learn',
                 style: TextStyle(
@@ -178,7 +244,6 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
 
               const SizedBox(height: 24),
 
-              // Resources
               const Text(
                 'Resources',
                 style: TextStyle(
@@ -205,7 +270,9 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                         : Icons.menu_book_outlined,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening $resource...')),
+                        SnackBar(
+                          content: Text('Opening $resource...'),
+                        ),
                       );
                     },
                   ),
@@ -214,44 +281,49 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
 
               const SizedBox(height: 20),
 
-              // Completion section
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: _completed ? AppColors.primaryLight : Colors.white,
+                  color: _completed
+                      ? AppColors.primaryLight
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: _completed ? AppColors.primary : AppColors.border,
+                    color: _completed
+                        ? AppColors.primary
+                        : AppColors.border,
                   ),
                 ),
                 child: Column(
                   children: [
                     Icon(
-                      _completed ? Icons.check_circle : Icons.flag_outlined,
+                      _completed
+                          ? Icons.check_circle
+                          : Icons.flag_outlined,
                       size: 34,
-                      color: _completed ? AppColors.success : AppColors.primary,
+                      color: _completed
+                          ? AppColors.success
+                          : AppColors.primary,
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
-                      _completed ? 'Stage completed!' : 'Finished this stage?',
+                      _completed
+                          ? 'Stage completed!'
+                          : 'Finished this stage?',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: AppColors.text,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       _completed
                           ? 'Great work. You can continue '
-                                'to the next stage.'
+                              'to the next stage.'
                           : 'Mark this stage as complete '
-                                'when you\'re done learning.',
+                              'when you\'re done learning.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -259,21 +331,20 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                         color: AppColors.secondaryText,
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     if (!_completed)
                       PrimaryButton(
-                        text: 'Complete Stage',
-                        icon: Icons.check,
-                        onPressed: _completeStage,
+                        text: 'Take Stage Quiz',
+                        icon: Icons.quiz_outlined,
+                        onPressed:
+                            _isCompleting ? null : _takeQuiz,
                       )
                     else
                       PrimaryButton(
                         text: 'Back to My Route',
                         icon: Icons.arrow_forward,
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pop(context, true);
                         },
                       ),
                   ],
