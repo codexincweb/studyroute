@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:3000/api';
+  static const String baseUrl = 'https://studyroute-one.vercel.app/api';
 
   Future<Map<String, dynamic>> register({
     required String name,
