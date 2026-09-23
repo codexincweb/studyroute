@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/routes.dart';
-import '../../app/theme.dart';
-import '../../services/api_service.dart';
-import '../../services/storage_service.dart';
-import '../../widgets/app_text_field.dart';
-import '../../widgets/primary_button.dart';
+import '../app/routes.dart';
+import '../app/theme.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../widgets/app_text_field.dart';
+import '../widgets/primary_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,14 +16,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final ApiService _apiService = ApiService();
-  final StorageService _storageService = StorageService();
+  final _apiService = ApiService();
+  final _storageService = StorageService();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -39,37 +41,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
-      final result = await _apiService.login(
+      final response = await _apiService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      final token = result['token'];
+      await _storageService.saveToken(response['token']);
 
-      if (token is! String || token.isEmpty) {
-        throw Exception('Login token was not returned');
-      }
+      if (!mounted) return;
 
-      await _storageService.saveToken(token);
-
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.home,
       );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -82,65 +76,60 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: const Text('Login'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+          padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
 
                 const Text(
                   'Welcome back',
                   style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.text,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
                 const Text(
-                  'Log in to continue your learning route.',
+                  'Log in to continue your learning journey.',
                   style: TextStyle(
                     fontSize: 15,
-                    height: 1.5,
-                    color: AppColors.secondaryText,
+                    color: Colors.grey,
                   ),
                 ),
 
                 const SizedBox(height: 32),
 
                 AppTextField(
-                  label: 'Email',
-                  hint: 'Enter your email',
                   controller: _emailController,
+                  label: 'Email',
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email';
+                      return 'Enter your email';
                     }
 
                     if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                      return 'Enter a valid email';
                     }
 
                     return null;
                   },
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 AppTextField(
                   label: 'Password',
@@ -168,41 +157,50 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 8),
 
-                PrimaryButton(
-                  text: 'Log In',
-                  icon: Icons.arrow_forward,
-                  isLoading: _isLoading,
-                  onPressed: _login,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.forgotPassword,
+                      );
+                    },
+                    child: const Text('Forgot password?'),
+                  ),
                 ),
 
-                const SizedBox(height: 24),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
 
-                Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account? ",
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.signup,
-                          );
-                        },
-                        child: const Text(
-                          'Sign up',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+
+                PrimaryButton(
+                  text: 'Login',
+                  onPressed: _isLoading ? null : _login,
+                  isLoading: _isLoading,
+                ),
+
+                const SizedBox(height: 20),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.signup,
+                    );
+                  },
+                  child: const Text(
+                    'Create an account',
                   ),
                 ),
               ],
