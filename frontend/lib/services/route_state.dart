@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/resource.dart';
 import '../models/stage.dart';
 
 class RouteState extends ChangeNotifier {
@@ -22,9 +23,24 @@ class RouteState extends ChangeNotifier {
         'Create a basic webpage',
       ],
       resources: [
-        'HTML Basics',
-        'HTML Elements Guide',
-        'Build Your First Webpage',
+        Resource(
+          title: 'HTML Basics',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content',
+        ),
+        Resource(
+          title: 'HTML Elements Guide',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements',
+        ),
+        Resource(
+          title: 'Build Your First Webpage',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content',
+        ),
       ],
     ),
     Stage(
@@ -37,7 +53,26 @@ class RouteState extends ChangeNotifier {
         'Style text and elements',
         'Build simple layouts',
       ],
-      resources: ['CSS Basics', 'Selectors and Properties', 'CSS Layout Guide'],
+      resources: [
+        Resource(
+          title: 'CSS Basics',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics',
+        ),
+        Resource(
+          title: 'Selectors and Properties',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Selectors',
+        ),
+        Resource(
+          title: 'CSS Layout Guide',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout',
+        ),
+      ],
       isLocked: true,
     ),
     Stage(
@@ -51,9 +86,24 @@ class RouteState extends ChangeNotifier {
         'Handle basic user interactions',
       ],
       resources: [
-        'JavaScript Introduction',
-        'Variables and Functions',
-        'DOM Basics',
+        Resource(
+          title: 'JavaScript Introduction',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting',
+        ),
+        Resource(
+          title: 'Variables and Functions',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types',
+        ),
+        Resource(
+          title: 'DOM Basics',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction',
+        ),
       ],
       isLocked: true,
     ),
@@ -67,7 +117,23 @@ class RouteState extends ChangeNotifier {
         'Learn framework fundamentals',
         'Build reusable UI components',
       ],
-      resources: ['Framework Fundamentals', 'Components', 'State Management'],
+      resources: [
+        Resource(
+          title: 'Framework Fundamentals',
+          type: 'Article',
+          url: 'https://react.dev/learn',
+        ),
+        Resource(
+          title: 'Components',
+          type: 'Article',
+          url: 'https://react.dev/learn/your-first-component',
+        ),
+        Resource(
+          title: 'State Management',
+          type: 'Article',
+          url: 'https://react.dev/learn/managing-state',
+        ),
+      ],
       isLocked: true,
     ),
     Stage(
@@ -80,7 +146,26 @@ class RouteState extends ChangeNotifier {
         'Build the application',
         'Deploy your project',
       ],
-      resources: ['Project Planning', 'Build Guide', 'Deployment Guide'],
+      resources: [
+        Resource(
+          title: 'Project Planning',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Your_first_website',
+        ),
+        Resource(
+          title: 'Build Guide',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Your_first_website',
+        ),
+        Resource(
+          title: 'Deployment Guide',
+          type: 'Article',
+          url:
+              'https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Deploying_your_website',
+        ),
+      ],
       isLocked: true,
     ),
   ];

@@ -1,11 +1,68 @@
 import 'package:flutter/material.dart';
 
-import '../../app/routes.dart';
-import '../../app/theme.dart';
-import '../../widgets/bottom_nav.dart';
+import '../app/routes.dart';
+import '../app/theme.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../widgets/bottom_nav.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
+
+  String _name = 'StudyRoute Learner';
+  String _email = 'Loading...';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final token = await _storageService.getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('No login session found.');
+      }
+
+      final result = await _apiService.getMe(token);
+
+      final user = result['user'] as Map<String, dynamic>?;
+
+      if (user == null) {
+        throw Exception('User information was not returned.');
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _name = user['name']?.toString() ?? 'StudyRoute Learner';
+        _email = user['email']?.toString() ?? '';
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _email = 'Unable to load account';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +109,10 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 14),
 
-                    const Text(
-                      'StudyRoute Learner',
-                      style: TextStyle(
+                    Text(
+                      _isLoading ? 'Loading...' : _name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                         color: AppColors.text,
@@ -63,9 +121,10 @@ class ProfileScreen extends StatelessWidget {
 
                     const SizedBox(height: 5),
 
-                    const Text(
-                      'learner@example.com',
-                      style: TextStyle(
+                    Text(
+                      _email,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.secondaryText,
                       ),
@@ -120,7 +179,13 @@ class ProfileScreen extends StatelessWidget {
                 icon: Icons.logout,
                 title: 'Log out',
                 subtitle: 'Return to the landing page',
-                onTap: () {
+                onTap: () async {
+                  await _storageService.clearToken();
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.landing,
@@ -149,8 +214,8 @@ class _ProfileOption extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.onTap,
     this.isDestructive = false,
+    required this.onTap,
   });
 
   @override

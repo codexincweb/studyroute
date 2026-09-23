@@ -23,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final StorageService _storageService = StorageService();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -58,10 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.routeDashboard,
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
     } catch (error) {
       if (!mounted) {
         return;
@@ -69,9 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -150,7 +146,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Password',
                   hint: 'Enter your password',
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';

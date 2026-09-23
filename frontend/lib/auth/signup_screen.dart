@@ -25,6 +25,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final StorageService _storageService = StorageService();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -62,10 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
-      Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.chooseGoal,
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.chooseGoal);
     } catch (error) {
       if (!mounted) {
         return;
@@ -73,9 +71,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -170,7 +166,19 @@ class _SignupScreenState extends State<SignupScreen> {
                   label: 'Password',
                   hint: 'Create a password',
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a password';

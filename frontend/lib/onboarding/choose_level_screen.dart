@@ -4,6 +4,7 @@ import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/selection_card.dart';
+import '../../services/route_state.dart';
 
 class ChooseLevelScreen extends StatefulWidget {
   const ChooseLevelScreen({super.key});
@@ -53,6 +54,8 @@ class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
       );
       return;
     }
+
+    RouteState.instance.setRoute(goal: _goal, level: _selectedLevel!);
 
     Navigator.pushReplacementNamed(
       context,

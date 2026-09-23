@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyroute/home/home_screen.dart';
 import 'package:studyroute/auth/login_screen.dart';
 import 'package:studyroute/auth/signup_screen.dart';
 import 'package:studyroute/landing/landing_screen.dart';
@@ -11,6 +12,7 @@ import 'package:studyroute/route/route_dashboard_screen.dart';
 
 class AppRoutes {
   static const landing = '/';
+  static const home = '/home';
   static const login = '/login';
   static const signup = '/signup';
   static const chooseGoal = '/choose-goal';
@@ -26,6 +28,7 @@ class AppRoutes {
     signup: (_) => const SignupScreen(),
     chooseGoal: (_) => const ChooseGoalScreen(),
     chooseLevel: (_) => const ChooseLevelScreen(),
+    home: (_) => const HomeScreen(),
     routeDashboard: (_) => const RouteDashboardScreen(),
     learningStage: (_) => const LearningStageScreen(),
     progress: (_) => const ProgressScreen(),

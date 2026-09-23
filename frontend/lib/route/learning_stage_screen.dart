@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../app/theme.dart';
 import '../models/stage.dart';
@@ -6,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/resource_card.dart';
+import '../widgets/bottom_nav.dart';
 import 'quiz_screen.dart';
 
 class LearningStageScreen extends StatefulWidget {
@@ -35,12 +37,30 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
     }
   }
 
+  Future<void> _openResource(String url, String title) async {
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$title does not have a study link yet.')),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Invalid study link for $title.')));
+      return;
+    }
+
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Future<void> _takeQuiz() async {
     if (_stage == null || _stage!.quizId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No quiz is available for this stage.'),
-        ),
+        const SnackBar(content: Text('No quiz is available for this stage.')),
       );
       return;
     }
@@ -49,11 +69,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const QuizScreen(),
-        settings: RouteSettings(
-          arguments: {
-            'quizId': _stage!.quizId,
-          },
-        ),
+        settings: RouteSettings(arguments: {'quizId': _stage!.quizId}),
       ),
     );
 
@@ -78,10 +94,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
         throw Exception('Please log in again.');
       }
 
-      await _apiService.completeStage(
-        _stage!.id,
-        token,
-      );
+      await _apiService.completeStage(_stage!.id, token);
 
       if (!mounted) {
         return;
@@ -106,22 +119,16 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
         _isCompleting = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_stage == null) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Stage not found'),
-        ),
-      );
+      return const Scaffold(body: Center(child: Text('Stage not found')));
     }
 
     final stage = _stage!;
@@ -262,18 +269,18 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: ResourceCard(
-                    title: resource,
-                    type: index == 0 ? 'Video' : 'Article',
-                    source: index == 0 ? 'YouTube' : 'StudyRoute',
-                    icon: index == 0
+                    title: resource.title,
+                    type: resource.type.isEmpty
+                        ? (index == 0 ? 'Video' : 'Article')
+                        : resource.type,
+                    source: resource.url.contains('developer.mozilla.org')
+                        ? 'MDN'
+                        : 'StudyRoute',
+                    icon: resource.type.toLowerCase() == 'video'
                         ? Icons.play_circle_outline
                         : Icons.menu_book_outlined,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Opening $resource...'),
-                        ),
-                      );
+                      _openResource(resource.url, resource.title);
                     },
                   ),
                 );
@@ -285,32 +292,22 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: _completed
-                      ? AppColors.primaryLight
-                      : Colors.white,
+                  color: _completed ? AppColors.primaryLight : Colors.white,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: _completed
-                        ? AppColors.primary
-                        : AppColors.border,
+                    color: _completed ? AppColors.primary : AppColors.border,
                   ),
                 ),
                 child: Column(
                   children: [
                     Icon(
-                      _completed
-                          ? Icons.check_circle
-                          : Icons.flag_outlined,
+                      _completed ? Icons.check_circle : Icons.flag_outlined,
                       size: 34,
-                      color: _completed
-                          ? AppColors.success
-                          : AppColors.primary,
+                      color: _completed ? AppColors.success : AppColors.primary,
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      _completed
-                          ? 'Stage completed!'
-                          : 'Finished this stage?',
+                      _completed ? 'Stage completed!' : 'Finished this stage?',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
@@ -321,9 +318,9 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                     Text(
                       _completed
                           ? 'Great work. You can continue '
-                              'to the next stage.'
+                                'to the next stage.'
                           : 'Mark this stage as complete '
-                              'when you\'re done learning.',
+                                'when you\'re done learning.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -336,8 +333,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
                       PrimaryButton(
                         text: 'Take Stage Quiz',
                         icon: Icons.quiz_outlined,
-                        onPressed:
-                            _isCompleting ? null : _takeQuiz,
+                        onPressed: _isCompleting ? null : _takeQuiz,
                       )
                     else
                       PrimaryButton(
@@ -354,6 +350,7 @@ class _LearningStageScreenState extends State<LearningStageScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: const BottomNav(currentIndex: 1),
     );
   }
 }
