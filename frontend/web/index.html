@@ -1,46 +1,201 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta
+    name="description"
+    content="Build your personalized learning route with StudyRoute."
+  >
 
-  <!-- iOS meta tags & icons -->
+  <!-- PWA -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="studyroute">
+  <meta name="apple-mobile-web-app-title" content="StudyRoute">
+
+  <meta name="theme-color" content="#5146E5">
+
+  <!-- iOS icon -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png">
 
-  <title>studyroute</title>
+  <title>StudyRoute</title>
+
+  <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <style>
+    #studyroute-install-banner {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 99999;
+
+      display: none;
+      align-items: center;
+      gap: 14px;
+
+      padding: 14px 16px;
+
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+
+      box-shadow: 0 12px 40px rgba(17, 24, 39, 0.16);
+
+      font-family: Arial, sans-serif;
+    }
+
+    #studyroute-install-banner img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    #studyroute-install-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #studyroute-install-title {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    #studyroute-install-text {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #6b7280;
+    }
+
+    #studyroute-install-button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 15px;
+
+      background: #5146E5;
+      color: #ffffff;
+
+      font-size: 13px;
+      font-weight: 700;
+
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #studyroute-install-close {
+      border: 0;
+      background: transparent;
+
+      color: #9ca3af;
+      font-size: 20px;
+      line-height: 1;
+
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    @media (max-width: 600px) {
+      #studyroute-install-banner {
+        align-items: flex-start;
+      }
+
+      #studyroute-install-button {
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- StudyRoute install banner -->
+  <div id="studyroute-install-banner">
+    <img src="icons/Icon-192.png" alt="StudyRoute">
+
+    <div id="studyroute-install-content">
+      <p id="studyroute-install-title">Install StudyRoute</p>
+      <p id="studyroute-install-text">
+        Get quicker access to your learning route.
+      </p>
+    </div>
+
+    <button id="studyroute-install-button">
+      Install
+    </button>
+
+    <button
+      id="studyroute-install-close"
+      aria-label="Close"
+    >
+      ×
+    </button>
+  </div>
+
+  <script>
+    let studyRouteInstallPrompt = null;
+
+    const installBanner =
+      document.getElementById('studyroute-install-banner');
+
+    const installButton =
+      document.getElementById('studyroute-install-button');
+
+    const closeButton =
+      document.getElementById('studyroute-install-close');
+
+    // Browser tells us that StudyRoute can be installed.
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+
+      studyRouteInstallPrompt = event;
+
+      installBanner.style.display = 'flex';
+    });
+
+    // User clicks Install.
+    installButton.addEventListener('click', async () => {
+      if (!studyRouteInstallPrompt) return;
+
+      studyRouteInstallPrompt.prompt();
+
+      const { outcome } =
+        await studyRouteInstallPrompt.userChoice;
+
+      console.log(
+        'StudyRoute install result:',
+        outcome
+      );
+
+      studyRouteInstallPrompt = null;
+
+      installBanner.style.display = 'none';
+    });
+
+    // User dismisses the banner.
+    closeButton.addEventListener('click', () => {
+      installBanner.style.display = 'none';
+    });
+
+    // App has already been installed.
+    window.addEventListener('appinstalled', () => {
+      studyRouteInstallPrompt = null;
+      installBanner.style.display = 'none';
+
+      console.log('StudyRoute was installed.');
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
