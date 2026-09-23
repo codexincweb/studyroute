@@ -136,8 +136,13 @@ async function getLearningPathById(req, res) {
           (row) => row.objective
         ),
         resources: resourcesResult.rows.map(
-  (row) => row.title
-),
+          (row) => ({
+            id: row.id,
+            title: row.title,
+            type: row.type,
+            url: row.url,
+          })
+        ),
         quizId:
           quizResult.rows.length > 0
             ? quizResult.rows[0].id
