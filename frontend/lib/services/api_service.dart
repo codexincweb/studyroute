@@ -14,7 +14,11 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+      }),
     );
 
     return _handleResponse(response);
@@ -27,7 +31,10 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+      }),
     );
 
     return _handleResponse(response);
@@ -38,9 +45,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/forgot-password'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email,
       }),
@@ -55,9 +60,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/reset-password'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'token': token,
         'password': password,
@@ -68,28 +71,42 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getLearningPaths() async {
-    final response = await http.get(Uri.parse('$baseUrl/learning-paths'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/learning-paths'),
+    );
 
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> getLearningPath(String id, String token) async {
+  Future<Map<String, dynamic>> getLearningPath(
+    String id,
+    String token,
+  ) async {
     final response = await http.get(
       Uri.parse('$baseUrl/learning-paths/$id'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     final data = _handleResponse(response);
 
     debugPrint('LEARNING PATH RESPONSE: $data');
 
-    return Map<String, dynamic>.from(data['learningPath'] as Map);
+    return Map<String, dynamic>.from(
+      data['learningPath'] as Map,
+    );
   }
 
-  Future<Map<String, dynamic>> getQuiz(String quizId, String token) async {
+  Future<Map<String, dynamic>> getQuiz(
+    String quizId,
+    String token,
+  ) async {
     final response = await http.get(
       Uri.parse('$baseUrl/quizzes/$quizId'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     return _handleResponse(response);
@@ -106,7 +123,20 @@ class ApiService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'answers': answers}),
+      body: jsonEncode({
+        'answers': answers,
+      }),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getProgress(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/progress'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     return _handleResponse(response);
@@ -115,7 +145,9 @@ class ApiService {
   Future<Map<String, dynamic>> getMe(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/auth/me'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     return _handleResponse(response);
@@ -127,7 +159,9 @@ class ApiService {
   ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/stages/$stageId/complete'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     return _handleResponse(response);
@@ -143,7 +177,9 @@ class ApiService {
     final error = data['error'];
 
     if (error is Map<String, dynamic>) {
-      throw Exception(error['message'] ?? 'Request failed');
+      throw Exception(
+        error['message'] ?? 'Request failed',
+      );
     }
 
     throw Exception('Request failed');

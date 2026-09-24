@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../app/routes.dart';
 import '../app/theme.dart';
-import '../services/route_state.dart';
+import '../models/stage.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/progress_ring.dart';
 
@@ -14,36 +16,130 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  final RouteState _routeState = RouteState.instance;
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
+
+  bool _isLoading = true;
+  String? _error;
+
+  int _completedStages = 0;
+  int _totalStages = 0;
+  double _percentage = 0;
+  List<Stage> _stages = [];
 
   @override
   void initState() {
     super.initState();
-    _routeState.addListener(_onRouteChanged);
+    _loadProgress();
   }
 
-  @override
-  void dispose() {
-    _routeState.removeListener(_onRouteChanged);
-    super.dispose();
-  }
+  Future<void> _loadProgress() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-  void _onRouteChanged() {
-    if (mounted) {
-      setState(() {});
+    try {
+      final token = await _storageService.getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Please log in again.');
+      }
+
+      final result = await _apiService.getProgress(token);
+
+      final stagesData = result['stages'] as List<dynamic>? ?? [];
+
+      final stages = stagesData
+          .map(
+            (stage) => Stage.fromJson(
+              Map<String, dynamic>.from(stage as Map),
+            ),
+          )
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _completedStages = result['completedStages'] as int? ?? 0;
+        _totalStages = result['totalStages'] as int? ?? 0;
+        _percentage =
+            (result['percentage'] as num?)?.toDouble() ?? 0;
+        _stages = stages;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
     }
+  }
+
+  Stage? get _currentStage {
+    for (final stage in _stages) {
+      if (!stage.isCompleted && !stage.isLocked) {
+        return stage;
+      }
+    }
+
+    return null;
+  }
+
+  List<Stage> get _completedStageList {
+    return _stages.where((stage) => stage.isCompleted).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final stages = _routeState.stages;
-    final completedStages = _routeState.completedStages;
-    final progress = _routeState.progress;
-    final currentStage = _routeState.currentStage;
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-    final completedStageList = stages
-        .where((stage) => stage.isCompleted)
-        .toList();
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text(
+            'My Progress',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadProgress,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: const BottomNav(currentIndex: 2),
+      );
+    }
+
+    final completedStageList = _completedStageList;
+    final currentStage = _currentStage;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -51,11 +147,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
         automaticallyImplyLeading: false,
         title: const Text(
           'My Progress',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
-      body: SafeArea(
+      body: RefreshIndicator(
+        onRefresh: _loadProgress,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,49 +170,44 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   color: AppColors.text,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               const Text(
-                'Here\'s how far you\'ve come on your route.',
-                style: TextStyle(fontSize: 15, color: AppColors.secondaryText),
+                'Here\'s how far you\'ve come on your learning routes.',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppColors.secondaryText,
+                ),
               ),
-
               const SizedBox(height: 28),
-
-              // Main progress card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(
+                    color: AppColors.border,
+                  ),
                 ),
                 child: Column(
                   children: [
                     ProgressRing(
-                      progress: progress,
+                      progress: _percentage,
                       size: 150,
                       strokeWidth: 12,
                     ),
-
                     const SizedBox(height: 22),
-
-                    Text(
-                      _routeState.goal,
-                      style: const TextStyle(
+                    const Text(
+                      'Overall progress',
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                         color: AppColors.text,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
-                      '$completedStages of '
-                      '${stages.length} stages completed',
+                      '$_completedStages of $_totalStages stages completed',
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.secondaryText,
@@ -120,9 +216,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 'Your stats',
                 style: TextStyle(
@@ -131,33 +225,27 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   color: AppColors.text,
                 ),
               ),
-
               const SizedBox(height: 14),
-
               Row(
                 children: [
                   Expanded(
                     child: _StatCard(
-                      value: '$completedStages',
+                      value: '$_completedStages',
                       label: 'Stages complete',
                       icon: Icons.check_circle_outline,
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: _StatCard(
-                      value: '0',
-                      label: 'Resources viewed',
+                      value: '$_totalStages',
+                      label: 'Total stages',
                       icon: Icons.menu_book_outlined,
                     ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 'Completed stages',
                 style: TextStyle(
@@ -166,9 +254,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   color: AppColors.text,
                 ),
               ),
-
               const SizedBox(height: 14),
-
               if (completedStageList.isEmpty)
                 Container(
                   width: double.infinity,
@@ -176,7 +262,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(
+                      color: AppColors.border,
+                    ),
                   ),
                   child: const Text(
                     'No stages completed yet. Start your first stage!',
@@ -197,7 +285,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     ),
                   ),
                 ),
-
               if (currentStage != null) ...[
                 const SizedBox(height: 16),
                 InkWell(
@@ -231,12 +318,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             size: 20,
                           ),
                         ),
-
                         const SizedBox(width: 14),
-
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               const Text(
                                 'Next up',
@@ -246,9 +332,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                                   color: AppColors.primary,
                                 ),
                               ),
-
                               const SizedBox(height: 4),
-
                               Text(
                                 currentStage.title,
                                 style: const TextStyle(
@@ -264,9 +348,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     ),
                   ),
                 ),
-              ] else if (completedStages == stages.length) ...[
+              ] else if (
+                  _totalStages > 0 &&
+                  _completedStages == _totalStages) ...[
                 const SizedBox(height: 16),
-
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(18),
@@ -283,7 +368,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Route completed!',
+                        'All available stages completed!',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
@@ -320,12 +405,18 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primary, size: 22),
+          Icon(
+            icon,
+            color: AppColors.primary,
+            size: 22,
+          ),
           const SizedBox(height: 14),
           Text(
             value,
@@ -369,7 +460,9 @@ class _CompletedStage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: AppColors.border,
+        ),
       ),
       child: Row(
         children: [
@@ -380,11 +473,13 @@ class _CompletedStage extends StatelessWidget {
               shape: BoxShape.circle,
               color: AppColors.success,
             ),
-            child: const Icon(Icons.check, color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,9 +491,7 @@ class _CompletedStage extends StatelessWidget {
                     color: AppColors.secondaryText,
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Text(
                   title,
                   style: const TextStyle(
@@ -407,9 +500,7 @@ class _CompletedStage extends StatelessWidget {
                     color: AppColors.text,
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Text(
                   subtitle,
                   style: const TextStyle(

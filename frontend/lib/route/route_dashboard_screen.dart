@@ -5,7 +5,6 @@ import '../models/stage.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import 'learning_stage_screen.dart';
-import '../services/route_state.dart';
 import '../widgets/bottom_nav.dart';
 
 class RouteDashboardScreen extends StatefulWidget {
@@ -33,8 +32,8 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    _goal = args?['goal']?.toString() ?? RouteState.instance.goal;
-    _level = args?['level']?.toString() ?? RouteState.instance.goal;
+    _goal = args?['goal']?.toString() ?? '';
+    _level = args?['level']?.toString() ?? '';
 
     if (_route == null) {
       _loadRoute();
@@ -65,24 +64,30 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
       }
 
       if (selectedPath == null) {
-        throw Exception('No learning route found for $_goal at $_level level.');
+        throw Exception(
+          'No learning route found for $_goal at $_level level.',
+        );
       }
 
       final pathId = selectedPath['id'].toString();
-
       final token = await _storageService.getToken();
 
       if (token == null || token.isEmpty) {
         throw Exception('Please log in again.');
       }
 
-      final routeResult = await _apiService.getLearningPath(pathId, token);
+      final routeResult =
+          await _apiService.getLearningPath(pathId, token);
+
+      if (!mounted) return;
 
       setState(() {
         _route = LearningRoute.fromJson(routeResult);
         _isLoading = false;
       });
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         _error = error.toString();
         _isLoading = false;
@@ -105,7 +110,9 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
   Future<void> _openStage(Stage stage) async {
     if (stage.isLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Complete the previous stage first.')),
+        const SnackBar(
+          content: Text('Complete the previous stage first.'),
+        ),
       );
       return;
     }
@@ -126,19 +133,28 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Learning Route')),
+        appBar: AppBar(
+          title: const Text('Learning Route'),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error!, textAlign: TextAlign.center),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loadRoute,
@@ -154,17 +170,24 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
     final route = _route!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(route.title)),
+      appBar: AppBar(
+        title: Text(route.title),
+      ),
       body: RefreshIndicator(
         onRefresh: _loadRoute,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(route.title, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              route.title,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             Text(route.description),
             const SizedBox(height: 20),
-            LinearProgressIndicator(value: route.progress),
+            LinearProgressIndicator(
+              value: route.progress,
+            ),
             const SizedBox(height: 8),
             Text(
               '${route.completedStages}/${route.stages.length} stages completed',
@@ -174,13 +197,15 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
               (stage) => Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  title: Text('Stage ${stage.number}: ${stage.title}'),
+                  title: Text(
+                    'Stage ${stage.number}: ${stage.title}',
+                  ),
                   subtitle: Text(stage.description),
                   trailing: stage.isCompleted
                       ? const Icon(Icons.check)
                       : stage.isLocked
-                      ? const Icon(Icons.lock)
-                      : const Icon(Icons.arrow_forward),
+                          ? const Icon(Icons.lock)
+                          : const Icon(Icons.arrow_forward),
                   onTap: () => _openStage(stage),
                 ),
               ),
@@ -195,7 +220,9 @@ class _RouteDashboardScreenState extends State<RouteDashboardScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 1),
+      bottomNavigationBar: const BottomNav(
+        currentIndex: 1,
+      ),
     );
   }
 }

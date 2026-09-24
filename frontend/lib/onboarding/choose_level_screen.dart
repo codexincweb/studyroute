@@ -4,7 +4,6 @@ import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/selection_card.dart';
-import '../../services/route_state.dart';
 
 class ChooseLevelScreen extends StatefulWidget {
   const ChooseLevelScreen({super.key});
@@ -15,7 +14,6 @@ class ChooseLevelScreen extends StatefulWidget {
 
 class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
   String? _selectedLevel;
-
   String _goal = 'your goal';
 
   final List<Map<String, dynamic>> _levels = [
@@ -28,11 +26,6 @@ class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
       'title': 'Intermediate',
       'subtitle': 'I understand the basics already.',
       'icon': Icons.looks_two_outlined,
-    },
-    {
-      'title': 'Advanced',
-      'subtitle': 'I have solid experience and want to go deeper.',
-      'icon': Icons.looks_3_outlined,
     },
   ];
 
@@ -50,17 +43,20 @@ class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
   void _buildRoute() {
     if (_selectedLevel == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose your level first.')),
+        const SnackBar(
+          content: Text('Please choose your level first.'),
+        ),
       );
       return;
     }
 
-    RouteState.instance.setRoute(goal: _goal, level: _selectedLevel!);
-
     Navigator.pushReplacementNamed(
       context,
       AppRoutes.routeDashboard,
-      arguments: {'goal': _goal, 'level': _selectedLevel},
+      arguments: {
+        'goal': _goal,
+        'level': _selectedLevel!,
+      },
     );
   }
 
@@ -93,21 +89,16 @@ class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
                         color: AppColors.text,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
-                      'We\'ll use your level to create a '
-                      'route that fits your experience in $_goal.',
+                      'We\'ll use your level to create a route that fits your experience in $_goal.',
                       style: const TextStyle(
                         fontSize: 15,
                         height: 1.5,
                         color: AppColors.secondaryText,
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
                     ..._levels.map((level) {
                       final title = level['title'] as String;
 
@@ -130,7 +121,6 @@ class _ChooseLevelScreenState extends State<ChooseLevelScreen> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
               child: PrimaryButton(

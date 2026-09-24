@@ -15,8 +15,6 @@ class ChooseGoalScreen extends StatefulWidget {
 class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
   String? _selectedGoal;
 
-  final TextEditingController _searchController = TextEditingController();
-
   final List<Map<String, dynamic>> _goals = [
     {
       'title': 'Web Development',
@@ -24,7 +22,7 @@ class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
       'icon': Icons.language,
     },
     {
-      'title': 'Mobile Development',
+      'title': 'Mobile App Development',
       'subtitle': 'Build Android and iOS applications',
       'icon': Icons.phone_android_outlined,
     },
@@ -39,32 +37,11 @@ class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
       'icon': Icons.design_services_outlined,
     },
     {
-      'title': 'Cybersecurity',
+      'title': 'Cyber Security',
       'subtitle': 'Learn how to protect systems and data',
       'icon': Icons.security_outlined,
     },
   ];
-
-  List<Map<String, dynamic>> get _filteredGoals {
-    final query = _searchController.text.trim().toLowerCase();
-
-    if (query.isEmpty) {
-      return _goals;
-    }
-
-    return _goals.where((goal) {
-      final title = goal['title'].toString().toLowerCase();
-      final subtitle = goal['subtitle'].toString().toLowerCase();
-
-      return title.contains(query) || subtitle.contains(query);
-    }).toList();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   void _continue() {
     if (_selectedGoal == null) {
@@ -83,8 +60,6 @@ class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredGoals = _filteredGoals;
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -114,8 +89,7 @@ class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Choose a goal and we\'ll build a route '
-                      'around it.',
+                      'Choose a goal and we\'ll build a route around it.',
                       style: TextStyle(
                         fontSize: 15,
                         height: 1.5,
@@ -123,61 +97,24 @@ class _ChooseGoalScreenState extends State<ChooseGoalScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
+                    ..._goals.map((goal) {
+                      final title = goal['title'] as String;
 
-                    TextField(
-                      controller: _searchController,
-                      onChanged: (_) {
-                        setState(() {});
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Search goals...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    if (filteredGoals.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 30),
-                        child: Center(
-                          child: Text(
-                            'No goals found.',
-                            style: TextStyle(
-                              color: AppColors.secondaryText,
-                              fontSize: 15,
-                            ),
-                          ),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SelectionCard(
+                          title: title,
+                          subtitle: goal['subtitle'] as String,
+                          icon: goal['icon'] as IconData,
+                          selected: _selectedGoal == title,
+                          onTap: () {
+                            setState(() {
+                              _selectedGoal = title;
+                            });
+                          },
                         ),
-                      )
-                    else
-                      ...filteredGoals.map((goal) {
-                        final title = goal['title'] as String;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: SelectionCard(
-                            title: title,
-                            subtitle: goal['subtitle'] as String,
-                            icon: goal['icon'] as IconData,
-                            selected: _selectedGoal == title,
-                            onTap: () {
-                              setState(() {
-                                _selectedGoal = title;
-                              });
-                            },
-                          ),
-                        );
-                      }),
+                      );
+                    }),
                   ],
                 ),
               ),
