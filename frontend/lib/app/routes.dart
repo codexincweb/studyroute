@@ -32,6 +32,8 @@ class AppRoutes {
     login: (_) => const LoginScreen(),
     signup: (_) => const SignupScreen(),
     forgotPassword: (_) => const ForgotPasswordScreen(),
+    resetPassword: (_) =>
+        ResetPasswordScreen(token: Uri.base.queryParameters['token'] ?? ''),
     chooseGoal: (_) => const ChooseGoalScreen(),
     chooseLevel: (_) => const ChooseLevelScreen(),
     routeDashboard: (_) => const RouteDashboardScreen(),
