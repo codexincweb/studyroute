@@ -54,9 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacementNamed(
+      Navigator.pushNamedAndRemoveUntil(
         context,
         AppRoutes.home,
+        (route) => false,
       );
     } catch (error) {
       if (!mounted) return;
@@ -94,20 +95,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const Text(
                   'Welcome back',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 8),
 
                 const Text(
                   'Log in to continue your learning journey.',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 15, color: Colors.grey),
                 ),
 
                 const SizedBox(height: 32),
@@ -164,10 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.forgotPassword,
-                      );
+                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
                     },
                     child: const Text('Forgot password?'),
                   ),
@@ -177,9 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                    ),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ],
 
@@ -195,14 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.signup,
-                    );
+                    Navigator.pushNamed(context, AppRoutes.signup);
                   },
-                  child: const Text(
-                    'Create an account',
-                  ),
+                  child: const Text('Create an account'),
                 ),
               ],
             ),

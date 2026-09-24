@@ -63,16 +63,18 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
-      Navigator.pushReplacementNamed(context, AppRoutes.chooseGoal);
-    } catch (error) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.chooseGoal,
+        (route) => false,
+      );
+    } catch (e) {
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     } finally {
       if (mounted) {
