@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../app/routes.dart';
 import '../app/theme.dart';
@@ -20,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _name = 'StudyRoute Learner';
   String _email = 'Loading...';
   bool _isLoading = true;
+  Uint8List? _profileImageBytes;
 
   @override
   void initState() {
@@ -64,6 +67,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickProfileImage() async {
+    final picker = ImagePicker();
+
+    final image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null || !mounted) {
+      return;
+    }
+
+    final bytes = await image.readAsBytes();
+
+    setState(() {
+      _profileImageBytes = bytes;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,17 +112,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryLight,
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 38,
-                        color: AppColors.primary,
+                    GestureDetector(
+                      onTap: _pickProfileImage,
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryLight,
+                          image: _profileImageBytes != null
+                              ? DecorationImage(
+                                  image: MemoryImage(_profileImageBytes!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: _profileImageBytes == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 38,
+                                color: AppColors.primary,
+                              )
+                            : null,
                       ),
                     ),
 

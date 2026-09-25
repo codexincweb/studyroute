@@ -144,6 +144,7 @@
 
   <script>
     let studyRouteInstallPrompt = null;
+    let installBannerTimer = null;
 
     const installBanner =
       document.getElementById('studyroute-install-banner');
@@ -155,17 +156,25 @@
       document.getElementById('studyroute-install-close');
 
     // Browser tells us that StudyRoute can be installed.
-    window.addEventListener('beforeinstallprompt', (event) => {
-      event.preventDefault();
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
 
-      studyRouteInstallPrompt = event;
+  studyRouteInstallPrompt = event;
 
-      installBanner.style.display = 'flex';
-    });
+  installBanner.style.display = 'flex';
+
+  // Automatically hide the banner after 10 seconds.
+  installBannerTimer = setTimeout(() => {
+    installBanner.style.display = 'none';
+    studyRouteInstallPrompt = null;
+  }, 10000);
+});
 
     // User clicks Install.
     installButton.addEventListener('click', async () => {
       if (!studyRouteInstallPrompt) return;
+
+      clearTimeout(installBannerTimer);
 
       studyRouteInstallPrompt.prompt();
 
@@ -183,9 +192,11 @@
     });
 
     // User dismisses the banner.
-    closeButton.addEventListener('click', () => {
-      installBanner.style.display = 'none';
-    });
+   closeButton.addEventListener('click', () => {
+     clearTimeout(installBannerTimer);
+     installBanner.style.display = 'none';
+     studyRouteInstallPrompt = null;
+});
 
     // App has already been installed.
     window.addEventListener('appinstalled', () => {

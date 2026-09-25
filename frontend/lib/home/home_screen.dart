@@ -160,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           'StudyRoute',
           style: TextStyle(fontWeight: FontWeight.w800),
