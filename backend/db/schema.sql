@@ -114,3 +114,9 @@ CREATE INDEX idx_password_reset_tokens_user_id
 
 CREATE INDEX idx_password_reset_tokens_expires_at
     ON password_reset_tokens(expires_at);
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS profile_picture_url TEXT;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS profile_picture_public_id TEXT;

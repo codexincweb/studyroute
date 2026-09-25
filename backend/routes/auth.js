@@ -1,4 +1,5 @@
 const express = require("express");
+
 const {
   register,
   login,
@@ -6,7 +7,11 @@ const {
   forgotPassword,
   resetPassword,
 } = require("../controllers/authController");
+
+const { uploadProfilePicture } = require("../controllers/profileController");
+
 const authenticateToken = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -16,5 +21,12 @@ router.get("/me", authenticateToken, getMe);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+
+router.post(
+  "/profile-picture",
+  authenticateToken,
+  upload.single("profilePicture"),
+  uploadProfilePicture
+);
 
 module.exports = router;

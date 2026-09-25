@@ -76,7 +76,7 @@ async function login(req, res) {
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await pool.query(
-      `SELECT id, name, email, password_hash
+      `SELECT id, name, email, profile_picture_url AS "profilePicture", password_hash
        FROM users
        WHERE email = $1`,
       [normalizedEmail]
@@ -133,7 +133,7 @@ async function login(req, res) {
 async function getMe(req, res) {
   try {
     const result = await pool.query(
-      `SELECT id, name, email
+      `SELECT id, name, email, profile_picture_url AS "profilePicture"
        FROM users
        WHERE id = $1`,
       [req.userId]
